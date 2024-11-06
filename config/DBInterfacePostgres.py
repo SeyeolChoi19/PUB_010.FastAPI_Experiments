@@ -15,7 +15,7 @@ class DBInterface:
         self.server_name = server_name
         self.engine      = create_engine(f"{sql_type}://{username}:{password}@{hostname}/{server_name}", echo = False, max_overflow = 30, pool_size = 30)
     
-    def upload_to_database(self, table_name: str, df: pd.core.frame.DataFrame, exist_option: str = "append", schema_name: str = "public"):
+    def upload_to_database(self, table_name: str, df: pl.DataFrame, exist_option: str = "append", schema_name: str = "public"):
         data_object = df.write_csv()
 
         with self.engine.raw_connection() as connection:
