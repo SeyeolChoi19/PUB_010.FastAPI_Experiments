@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg2, io
 
 import pandas as pd 
 import polars as pl 
@@ -16,8 +16,12 @@ class DBInterface:
         self.engine      = create_engine(f"{sql_type}://{username}:{password}@{hostname}/{server_name}", echo = False, max_overflow = 30, pool_size = 30)
     
     def upload_to_database(self, table_name: str, df: pd.core.frame.DataFrame, exist_option: str = "append", schema_name: str = "public"):
-        df.to_sql(table_name, con = self.engine, if_exists = exist_option, index = False, schema = schema_name)
-        
+        data_object = df.write_csv()
+
+        with self.engine.raw_connection() as connection:
+            cursor_object = connection.cursor()
+            cursor_object.copy_expert(f'COPY "{schema_name}"."{table_name}" FROM STDIN WITH CSV HEADER', io.StringIO(data_object))
+     
     def get_from_database(self, table_id: str, columns_list: list[str], filter_condition: str = None, schema_name: str = "public"):
         columns_list   = "*" if (columns_list == ["*"]) else [f'"{column}"' for column in columns_list]
         query_str      = (lambda x: x if (filter_condition == None) else f"{x} WHERE {filter_condition}")(f"SELECT {','.join(columns_list)} FROM \"{schema_name}\".\"{table_id}\"")
